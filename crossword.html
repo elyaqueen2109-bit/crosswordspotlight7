@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Personality Crossword</title>
+    <style>
+        :root {
+            --bg-color: #0b0c10;
+            --panel-bg: #1f2833;
+            --neon-cyan: #45f3ff;
+            --neon-pink: #ff2a75;
+            --neon-green: #00ff88;
+            --neon-red: #ff3366;
+            --text-main: #c5c6c7;
+            --cell-bg: #151a22;
+            --border: #30363d;
+        }
+
+        * { 
+            box-sizing: border-box; 
+            -webkit-tap-highlight-color: transparent; 
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            background-image: radial-gradient(circle at 50% 0%, rgba(69, 243, 255, 0.1) 0%, transparent 40%);
+        }
+
+        h1 { 
+            font-size: 1.8rem; 
+            text-align: center; 
+            margin: 0 0 20px 0; 
+            font-weight: 900; 
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            color: #fff;
+            text-shadow: 0 0 10px var(--neon-cyan), 0 0 20px var(--neon-cyan);
+        }
+
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            max-width: 1000px;
+        }
+
+        .crossword-wrapper {
+            background: var(--panel-bg);
+            padding: 15px;
+            border-radius: 16px;
+            border: 2px solid var(--neon-cyan);
+            box-shadow: 0 0 25px rgba(69, 243, 255, 0.2), inset 0 0 10px rgba(69, 243, 255, 0.1);
+            overflow-x: auto;
+            margin-bottom: 25px;
+            max-width: 100%;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(23, 32px); /* 23 columns */
+            grid-template-rows: repeat(23, 32px);    /* 23 rows */
+            gap: 2px;
+            margin: 0 auto;
+        }
+
+        .cell {
+            width: 32px;
+            height: 32px;
+            position: relative;
+        }
+
+        .cell.empty { visibility: hidden; }
+
+        .cell input {
+            width: 100%; 
+            height: 100%;
+            background-color: var(--cell-bg);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            text-align: center; 
+            font-size: 18px; 
+            font-weight: 800;
+            color: #fff; 
+            text-transform: uppercase;
+            outline: none; 
+            padding: 0; 
+            margin: 0;
+            caret-color: transparent; /* Убираем мигающую палочку для красоты */
+            transition: all 0.2s ease;
+        }
+
+        /* Подсветка активного слова */
+        .cell input:focus {
+            background-color: rgba(69, 243, 255, 0.25);
+            border-color: var(--neon-cyan);
+            box-shadow: 0 0 10px var(--neon-cyan);
+            z-index: 2;
+        }
+
+        /* Подсветка клеток в том же слове (для удобства) */
+        .cell.active-word input {
+            background-color: rgba(69, 243, 255, 0.1);
+        }
+
+        .cell.correct input {
+            background-color: rgba(0, 255, 136, 0.15);
+            border-color: var(--neon-green);
+            color: var(--neon-green);
+            box-shadow: 0 0 10px var(--neon-green);
+        }
+
+        .cell.wrong input {
+            background-color: rgba(255, 51, 102, 0.15);
+            border-color: var(--neon-red);
+            color: var(--neon-red);
+            box-shadow: 0 0 10px var(--neon-red);
+            animation: shake 0.4s;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-3px); }
+            50% { transform: translateX(3px); }
+            75% { transform: translateX(-3px); }
+        }
+
+        .cell-number {
+            position: absolute; 
+            top: 1px; 
+            left: 2px;
+            font-size: 9px; 
+            font-weight: 900; 
+            color: var(--neon-pink);
+            pointer-events: none; 
+            line-height: 1;
+            text-shadow: 0 0 5px var(--neon-pink);
+            z-index: 3;
+        }
+
+        .controls { 
+            display: flex; 
+            gap: 15px; 
+            margin-bottom: 30px; 
+            width: 100%; 
+            max-width: 400px; 
+        }
+
+        button {
+            flex: 1; 
+            padding: 15px; 
+            border: none; 
+            border-radius: 10px;
+            font-size: 1rem; 
+            font-weight: 800; 
+            cursor: pointer; 
+            text-transform: uppercase; 
+            letter-spacing: 1px;
+            transition: all 0.2s ease;
+            background-color: var(--panel-bg);
+        }
+        
+        button:active { transform: scale(0.95); }
+
+        .btn-check { 
+            color: var(--neon-green);
+            border: 2px solid var(--neon-green);
+            box-shadow: 0 0 15px rgba(0, 255, 136, 0.2);
+        }
+        .btn-check:hover {
+            background-color: rgba(0, 255, 136, 0.1);
+            box-shadow: 0 0 20px rgba(0, 255, 136, 0.5);
+        }
+
+        .btn-clear { 
+            color: var(--neon-pink);
+            border: 2px solid var(--neon-pink);
+            box-shadow: 0 0 15px rgba(255, 42, 117, 0.2);
+        }
+        .btn-clear:hover {
+            background-color: rgba(255, 42, 117, 0.1);
+            box-shadow: 0 0 20px rgba(255, 42, 117, 0.5);
+        }
+
+        .clues-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            width: 100%;
+        }
+
+        .clues-col {
+            flex: 1;
+            min-width: 280px;
+            background: var(--panel-bg);
+            padding: 20px; 
+            border-radius: 12px; 
+            border: 1px solid var(--border);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        .clues-col h3 { 
+            margin-top: 0; 
+            font-size: 1.1rem; 
+            border-bottom: 1px solid var(--border); 
+            padding-bottom: 10px; 
+            margin-bottom: 15px;
+            color: var(--neon-cyan);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .clues-col:last-child h3 { color: var(--neon-pink); }
+
+        .clue-list { list-style: none; padding: 0; margin: 0; }
+        .clue-list li { 
+            margin-bottom: 15px; 
+            font-size: 0.95rem; 
+            display: flex; 
+            line-height: 1.5; 
+            color: #8b949e;
+        }
+        .clue-num { 
+            font-weight: 900; 
+            color: var(--neon-cyan); 
+            min-width: 25px; 
+        }
+        .clues-col:last-child .clue-num { color: var(--neon-pink); }
+
+        @media (max-width: 800px) {
+            .grid {
+                grid-template-columns: repeat(23, 24px); 
+                grid-template-rows: repeat(23, 24px);    
+                gap: 1px;
+            }
+            .cell { width: 24px; height: 24px; }
+            .cell input { font-size: 14px; border-radius: 2px; }
+            .cell-number { font-size: 7px; top: 0px; left: 1px; }
+            h1 { font-size: 1.4rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="game-container">
+        <h1>Personality Crossword</h1>
+
+        <div class="crossword-wrapper">
+            <div class="grid" id="grid"></div>
+        </div>
+
+        <div class="controls">
+            <button class="btn-check" onclick="playSound('click'); checkAnswers()">Check ✓</button>
+            <button class="btn-clear" onclick="playSound('clear'); clearGrid()">Clear ✗</button>
+        </div>
+
+        <div class="clues-container">
+            <div class="clues-col">
+                <h3>Across</h3>
+                <ul class="clue-list">
+                    <li><span class="clue-num">2.</span><span class="clue-text">She is not afraid to jump from a high rock into the water. She is very ___.</span></li>
+                    <li><span class="clue-num">3.</span><span class="clue-text">She creates beautiful paintings from her head. She is a ___ person.</span></li>
+                    <li><span class="clue-num">4.</span><span class="clue-text">My brother goes to the gym every day. He is very ___.</span></li>
+                </ul>
+            </div>
+            
+            <div class="clues-col">
+                <h3>Down</h3>
+                <ul class="clue-list">
+                    <li><span class="clue-num">1.</span><span class="clue-text">She likes to draw, paint, and make up stories. She is very ___ and creative.</span></li>
+                    <li><span class="clue-num">5.</span><span class="clue-text">He loves to talk to new people at parties. He is very ___.</span></li>
+                    <li><span class="clue-num">6.</span><span class="clue-text">My grandmother can wait for a bus for an hour and never gets angry. She is very ___.</span></li>
+                    <li><span class="clue-num">7.</span><span class="clue-text">I want to be a professional football player. I am very ___ to reach my goal.</span></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const letterData = [
+            [2, 16, "S"], [3, 16, "O"], [4, 10, "P"], [4, 16, "C"], [5, 10, "A"],
+            [5, 11, "T"], [5, 12, "H"], [5, 13, "L"], [5, 14, "E"], [5, 15, "T"],
+            [5, 16, "I"], [5, 17, "C"], [6, 10, "T"], [6, 16, "A"], [7, 7, "I"],
+            [7, 10, "I"], [7, 16, "B"], [8, 7, "M"], [8, 10, "E"], [8, 16, "L"],
+            [9, 6, "D"], [9, 7, "A"], [9, 8, "R"], [9, 9, "I"], [9, 10, "N"],
+            [9, 11, "G"], [9, 16, "E"], [10, 7, "G"], [10, 10, "T"], [11, 7, "I"],
+            [12, 7, "N"], [12, 11, "D"], [13, 4, "C"], [13, 5, "R"], [13, 6, "E"],
+            [13, 7, "A"], [13, 8, "T"], [13, 9, "I"], [13, 10, "V"], [13, 11, "E"],
+            [14, 7, "T"], [14, 11, "T"], [15, 7, "I"], [15, 11, "E"], [16, 7, "V"],
+            [16, 11, "R"], [17, 7, "E"], [17, 11, "M"], [18, 11, "I"], [19, 11, "N"],
+            [20, 11, "E"], [21, 11, "D"]
+        ];
+
+        const numbers = {
+            "7,7": 1, "9,6": 2, "13,4": 3, "5,10": 4, 
+            "2,16": 5, "4,10": 6, "12,11": 7
+        };
+
+        const gridSize = 23;
+        const gridContainer = document.getElementById('grid');
+        let inputs = [];
+        let activeDir = 'H'; // 'H' = Horizontal, 'V' = Vertical
+
+        // Создаем матрицу для проверки соседних клеток
+        let matrixMap = Array.from({ length: gridSize }, () => Array(gridSize).fill(false));
+
+        function buildGrid() {
+            let html = '';
+            
+            // Сначала заполняем карту наличия клеток
+            letterData.forEach(([r, c, char]) => {
+                matrixMap[r - 1][c - 1] = true;
+            });
+
+            for (let r = 0; r < gridSize; r++) {
+                for (let c = 0; c < gridSize; c++) {
+                    const numKey = `${r + 1},${c + 1}`;
+                    const num = numbers[numKey];
+                    
+                    if (matrixMap[r][c]) {
+                        const char = letterData.find(l => l[0] === r + 1 && l[1] === c + 1)[2];
+                        const numHtml = num ? `<span class="cell-number">${num}</span>` : '';
+                        // Добавляем data-атрибуты для строки и колонки
+                        html += `<div class="cell" data-r="${r}" data-c="${c}">${numHtml}<input maxlength="1" data-expected="${char}" data-r="${r}" data-c="${c}"></div>`;
+                    } else {
+                        html += `<div class="cell empty"></div>`;
+                    }
+                }
+            }
+            
+            gridContainer.innerHTML = html;
+            inputs = Array.from(document.querySelectorAll('.cell input'));
+            attachEvents();
+        }
+
+        // Получить инпут по координатам
+        function getInput(r, c) {
+            return document.querySelector(`input[data-r="${r}"][data-c="${c}"]`);
+        }
+
+        function attachEvents() {
+            inputs.forEach(input => {
+                // При клике определяем направление
+                input.addEventListener('click', function() {
+                    const r = parseInt(this.dataset.r);
+                    const c = parseInt(this.dataset.c);
+                    
+                    // Проверяем, есть ли соседи справа/слева (горизонталь) и сверху/снизу (вертикаль)
+                    const hasH = (c > 0 && matrixMap[r][c-1]) || (c < gridSize - 1 && matrixMap[r][c+1]);
+                    const hasV = (r > 0 && matrixMap[r-1][c]) || (r < gridSize - 1 && matrixMap[r+1][c]);
+
+                    // Логика переключения направления при повторном клике
+                    if (hasH && hasV) {
+                        if (this.dataset.lastClicked === 'true') {
+                            activeDir = activeDir === 'H' ? 'V' : 'H';
+                        } else {
+                            activeDir = 'H'; // По умолчанию горизонталь
+                        }
+                    } else if (hasH) {
+                        activeDir = 'H';
+                    } else if (hasV) {
+                        activeDir = 'V';
+                    }
+                    
+                    // Сбрасываем флаг у всех
+                    inputs.forEach(i => i.dataset.lastClicked = 'false');
+                    this.dataset.lastClicked = 'true';
+                    
+                    highlightWord(r, c, activeDir);
+                });
+
+                // Ввод текста
+                input.addEventListener('input', function(e) {
+                    this.value = this.value.toUpperCase();
+                    this.parentElement.classList.remove('wrong', 'correct');
+                    playSound('type');
+                    
+                    if (this.value.length === 1) {
+                        const r = parseInt(this.dataset.r);
+                        const c = parseInt(this.dataset.c);
+                        moveToNext(r, c, activeDir);
+                    }
+                });
+
+                // Управление клавишами
+                input.addEventListener('keydown', function(e) {
+                    const r = parseInt(this.dataset.r);
+                    const c = parseInt(this.dataset.c);
+
+                    if (e.key === 'Backspace') {
+                        if (this.value === '') {
+                            moveToPrev(r, c, activeDir);
+                        }
+                    } else if (e.key === 'ArrowRight') {
+                        activeDir = 'H'; moveToNext(r, c, activeDir);
+                    } else if (e.key === 'ArrowLeft') {
+                        activeDir = 'H'; moveToPrev(r, c, activeDir);
+                    } else if (e.key === 'ArrowDown') {
+                        activeDir = 'V'; moveToNext(r, c, activeDir);
+                    } else if (e.key === 'ArrowUp') {
+                        activeDir = 'V'; moveToPrev(r, c, activeDir);
+                    }
+                });
+            });
+        }
+
+        function moveToNext(r, c, dir) {
+            let nextR = r, nextC = c;
+            if (dir === 'H') nextC++;
+            else nextR++;
+            
+            const nextInput = getInput(nextR, nextC);
+            if (nextInput) nextInput.focus();
+        }
+
+        function moveToPrev(r, c, dir) {
+            let prevR = r, prevC = c;
+            if (dir === 'H') prevC--;
+            else prevR--;
+            
+            const prevInput = getInput(prevR, prevC);
+            if (prevInput) {
+                prevInput.focus();
+                // Если мы стерли букву, ставим курсор в конец
+                if(prevInput.value !== '') {
+                    prevInput.setSelectionRange(1, 1);
+                }
+            }
+        }
+
+        function highlightWord(startR, startC, dir) {
+            // Убираем старую подсветку
+            document.querySelectorAll('.cell').forEach(c => c.classList.remove('active-word'));
+            
+            if (dir === 'H') {
+                let c = startC;
+                while (c >= 0 && matrixMap[startR][c]) c--; // Идем влево до края
+                c++;
+                while (c < gridSize && matrixMap[startR][c]) {
+                    document.querySelector(`.cell[data-r="${startR}"][data-c="${c}"]`).classList.add('active-word');
+                    c++;
+                }
+            } else {
+                let r = startR;
+                while (r >= 0 && matrixMap[r][startC]) r--; // Идем вверх до края
+                r++;
+                while (r < gridSize && matrixMap[r][startC]) {
+                    document.querySelector(`.cell[data-r="${r}"][data-c="${startC}"]`).classList.add('active-word');
+                    r++;
+                }
+            }
+        }
+
+        let audioCtx;
+        function initAudio() {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+        }
+
+        function playSound(type) {
+            initAudio();
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            const now = audioCtx.currentTime;
+
+            if (type === 'type') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(800, now);
+                osc.frequency.exponentialRampToValueAtTime(1200, now + 0.05);
+                gain.gain.setValueAtTime(0.05, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+                osc.start(now); osc.stop(now + 0.05);
+            } else if (type === 'click') {
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(400, now);
+                osc.frequency.exponentialRampToValueAtTime(600, now + 0.1);
+                gain.gain.setValueAtTime(0.1, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+                osc.start(now); osc.stop(now + 0.1);
+            } else if (type === 'clear') {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(600, now);
+                osc.frequency.exponentialRampToValueAtTime(200, now + 0.2);
+                gain.gain.setValueAtTime(0.1, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+                osc.start(now); osc.stop(now + 0.2);
+            } else if (type === 'win') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(400, now);
+                osc.frequency.setValueAtTime(600, now + 0.1);
+                osc.frequency.setValueAtTime(800, now + 0.2);
+                osc.frequency.setValueAtTime(1200, now + 0.3);
+                gain.gain.setValueAtTime(0.1, now);
+                gain.gain.linearRampToValueAtTime(0, now + 0.5);
+                osc.start(now); osc.stop(now + 0.5);
+            }
+        }
+
+        function checkAnswers() {
+            let allCorrect = true;
+            let filledCount = 0;
+            
+            inputs.forEach(input => {
+                const expected = input.dataset.expected;
+                const actual = input.value;
+                const parent = input.parentElement;
+                
+                parent.classList.remove('correct', 'wrong');
+
+                if (actual !== '') {
+                    filledCount++;
+                    if (actual === expected) {
+                        parent.classList.add('correct');
+                    } else {
+                        parent.classList.add('wrong');
+                        allCorrect = false;
+                    }
+                } else {
+                    allCorrect = false;
+                }
+            });
+
+            if (allCorrect && filledCount > 0) {
+                setTimeout(() => {
+                    playSound('win');
+                    alert("Awesome! You solved the entire crossword! 🚀");
+                }, 100);
+            } else if (filledCount === 0) {
+                alert("Please fill in the crossword first!");
+            }
+        }
+
+        function clearGrid() {
+            inputs.forEach(input => {
+                input.value = '';
+                input.parentElement.classList.remove('correct', 'wrong');
+            });
+            if(inputs.length > 0) inputs[0].focus();
+        }
+
+        window.onload = buildGrid;
+    </script>
+</body>
+</html>
